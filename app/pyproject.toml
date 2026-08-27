@@ -1,0 +1,19 @@
+[project]
+name = "app"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "gabrielgoisandrade", email = "gabriel.gois.andrade14@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "selenium>=4.47.0",
+]
+
+[project.scripts]
+app = "app:main"
+
+[build-system]
+requires = ["uv_build>=0.12.6,<0.13.0"]
+build-backend = "uv_build"
