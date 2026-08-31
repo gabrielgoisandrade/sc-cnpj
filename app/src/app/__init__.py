@@ -1,7 +1,9 @@
 import csv
 import logging
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from time import perf_counter, sleep
+from time import sleep
 
 from openpyxl import load_workbook
 from openpyxl.utils import column_index_from_string
@@ -9,6 +11,7 @@ from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 
 logging.basicConfig(
@@ -40,9 +43,8 @@ def get_driver():
 
 
 def find_value_by_cnpj(cnpjs: list[str]) -> list[str]:
-    start = perf_counter()
-
     log.info(f"Starting search {len(cnpjs)} CNPJs")
+
     driver = get_driver()
 
     index_url = "https://appasp.sefaz.go.gov.br/Sintegra/Consulta/default.html"
@@ -78,7 +80,7 @@ def find_value_by_cnpj(cnpjs: list[str]) -> list[str]:
             if len(error_tooltip):
                 log.error(f"{cnpj} is invalid")
 
-                results.append("CNPJ inválido")
+                results.append([cnpj, "CNPJ inválido"])
                 input.clear()
 
                 continue
@@ -92,31 +94,39 @@ def find_value_by_cnpj(cnpjs: list[str]) -> list[str]:
             if result_page_url == driver.current_url and not len(span):
                 log.info(f"No results found for {cnpj}")
 
-                results.append(" ")
+                results.append([cnpj, " "])
                 driver.back()
 
                 continue
 
             log.info(f"Results found: {len(results)} of {len(cnpjs)}")
 
-            results.append(span[0].text)
+            results.append([cnpj, span[0].text])
 
             driver.back()
-
-        end = perf_counter()
 
         return results
     except (WebDriverException, TimeoutException) as e:
         log.exception(msg=e)
         raise e from e
     finally:
-        log.info(f"Finished at {(end - start):.4f}")
+        log.info("Finished")
         driver.quit()
 
 
+def make_chunk(cnpjs):
+    chunk_size = 3
+    return [cnpjs[i : i + chunk_size] for i in range(0, len(cnpjs), chunk_size)]
+
+
+def write(v):
+    with open("../output", "w+") as f:
+        f.write(f"{v[0]} - {v[1]}")
+
+
 def main() -> None:
-    try:
-        file = r"C:\Users\gabriel.andrade\Documents\cnpjs_export_with_situation.xlsx"
+    """try:
+        file = r"C:/Users/gabriel.andrade/Documents/cnpjs_export_with_situation.xlsx"
         wb = load_workbook(file)
         sheet = wb.active
 
@@ -135,6 +145,21 @@ def main() -> None:
         for index, result in enumerate(results, start=2):
             sheet.cell(column=situation_column, row=index, value=result)
 
-        wb.save(r"C:\Users\gabriel.andrade\Documents\cnpjs_export_with_situation.xlsx")
+        wb.save(r"C:/Users/gabriel.andrade/Documents/cnpjs_export_with_situation.xlsx")
     except (WebDriverException, UnboundLocalError) as e:
-        log.exception(msg=e)
+        log.exception(msg=e)"""
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        nums = [
+            "45.543.915/0001-81",
+            "75.315.333/0001-09",
+            "93.209.765/0001-17",
+            "03.995.515/0013-09",
+        ]
+
+        chunks = make_chunk(nums)
+
+        futures = [executor.submit(find_value_by_cnpj, num) for num in chunks]
+
+        for fut in as_completed(futures):
+            [write(item) for item in fut.result()]
