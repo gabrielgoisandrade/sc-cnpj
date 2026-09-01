@@ -29,12 +29,7 @@ def main() -> None:
                 for result in future.result()
             ]
 
+    # TODO: ajustar para o tipo correto de exception
     except Exception as e:
         print("Ups, deu ruim!", e)
         log.exception(msg=e)
-
-
-# TODO: luz caiu e perdi o progresso, dessa forma, todos os 30mil itens precisariam ser buscados novamente, pois nao há um controle sobre isso.
-# nesse caso, o ideal era continuar de onde parou, gravando o ultimo registro salvo no log e, a partir dele, refazer o processo.
-# isso por worker: worker_1 -> parou em 3, worker_2 -> parou em 10 e assim por diante
-# checkpoint, usando o proprio log pra rastreio
