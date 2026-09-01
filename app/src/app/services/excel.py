@@ -3,9 +3,11 @@ from zipfile import BadZipFile
 from openpyxl import load_workbook
 from openpyxl.workbook.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
+from rich.progress import Progress
 
 from app.logger import log
 from app.models import Record
+from app.state import thread_state
 
 
 class Excel:
@@ -24,6 +26,8 @@ class Excel:
                 raise ValueError("Sheet cannot be None")
 
             self.__sheet = self.__workbook.active
+
+            log.info("Spreadshet found")
         except (FileNotFoundError, BadZipFile) as e:
             log.exception(msg=e)
             raise e from e
@@ -34,6 +38,7 @@ class Excel:
                 self.__sheet[f"E{record.row}"] = record.value
 
             self.__workbook.save(self.__path)
+            log.info("Record saved")
         except OSError as e:
             log.exception(msg=e)
             raise OSError(e) from e
