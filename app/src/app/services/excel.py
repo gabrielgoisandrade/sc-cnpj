@@ -3,11 +3,9 @@ from zipfile import BadZipFile
 from openpyxl import load_workbook
 from openpyxl.workbook.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
-from rich.progress import Progress
 
 from app.logger import log
 from app.models import Record
-from app.state import thread_state
 
 
 class Excel:
