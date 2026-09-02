@@ -1,23 +1,69 @@
-from selenium.common.exceptions import TimeoutException, WebDriverException
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    TextColumn,
+    TimeRemainingColumn,
+)
+
+from app.logger import create_log, log
 from app.models import Record
-from app.services import Driver
+from app.services import Excel
 from app.state import thread_state
+from app.utils import make_chunks
+
+from .excel_worker import excel_worker
+from .selenium_worker import selenium_worker
 
 
-def worker(cnpjs: list[Record]):
-    thread_state.log.info(f"Starting search {len(cnpjs)} CNPJs")
+def initializer(progress: Progress):
+    worker_name = threading.current_thread().name
+    id = worker_name.split("_")[1]
+    worker_name = worker_name.replace(id, str(int(id) + 1))
 
-    driver = Driver()
+    thread_state.log = create_log(worker_name)
+    thread_state.log.info("Created worker")
 
-    try:
-        return driver.find_value(cnpjs)
-    except (WebDriverException, TimeoutException) as e:
-        thread_state.log.exception(msg=e)
-        raise e from e
-    finally:
-        thread_state.log.info("Finished")
-        driver.quit()
+    thread_state.progress = progress
+    thread_state.worker_task = progress.add_task(worker_name, total=None)
 
 
-__all__ = ["worker"]
+def create_workers():
+    path = r"C:\Users\gabriel.andrade\Documents\cnpjs_export.xlsx"
+
+    excel = Excel(path)
+    excel.load()
+
+    column = excel.sheet["A"][1:2]
+
+    cnpjs = [Record(cell.row, cell.value) for cell in column]
+
+    log.info(f"Found {len(cnpjs)} values from spreadsheet")
+
+    chunks = make_chunks(cnpjs)
+
+    progress_bars = [
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(bar_width=None),
+        MofNCompleteColumn("/"),
+        TimeRemainingColumn(elapsed_when_finished=True, compact=True),
+    ]
+
+    with Progress(*progress_bars, expand=True) as progress:
+        thread_props = {
+            "max_workers": 4,
+            "thread_name_prefix": "worker",
+            "initializer": initializer,
+            "initargs": (progress,),
+        }
+
+        with ThreadPoolExecutor(**thread_props) as executor:
+            futures = [executor.submit(selenium_worker, chunk) for chunk in chunks]
+
+        excel_worker(futures, excel, progress)
+
+
+__all__ = ["create_workers"]
