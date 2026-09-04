@@ -1,6 +1,7 @@
 from pathlib import Path
 from time import sleep
 
+from rich.align import Align
 from rich.text import Text
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver import Chrome
@@ -13,6 +14,7 @@ from app.models import Record
 from app.state import thread_state
 
 
+# TODO: remover TODO o rich daqui e separar num arquivo próprio de ui.
 class Driver:
     __driver: WebDriver
     __path: str
@@ -59,13 +61,13 @@ class Driver:
             for criteria in criterias:
                 sleep(1.5)
 
-                thread_state.progress.advance(thread_state.worker_task)
-
                 thread_state.log.info(f"Searching {criteria.value}")
 
                 thread_state.visual_log.append(
                     Text.from_markup(f':mag: [bold][blue] Buscando "{criteria.value}"')
                 )
+
+                thread_state.progress.advance(thread_state.worker_task)
 
                 input.clear()
                 input.send_keys(criteria.value)
@@ -122,9 +124,12 @@ class Driver:
 
                 self.__driver.back()
 
-            thread_state.visual_log.append(
-                Text.from_markup(
-                    ":white_heavy_check_mark: [bold][green] Processo finalizado"
+            thread_state.worker_layout["logs"].update(
+                Align.center(
+                    Text.from_markup(
+                        ":white_heavy_check_mark: [bold][green] Processo finalizado"
+                    ),
+                    vertical="middle",
                 )
             )
 

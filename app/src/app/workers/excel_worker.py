@@ -3,7 +3,6 @@ from concurrent.futures import Future, as_completed
 from rich.live import Live
 from rich.panel import Panel
 from rich.progress import (
-    BarColumn,
     Progress,
 )
 
@@ -11,9 +10,9 @@ from app.models import Record
 from app.services import Excel
 
 
+# TODO: remover TODO o rich daqui e separar num arquivo próprio de ui.
 def excel_worker(_futures: list[Future[list[list[Record]]]], excel: Excel):
-
-    progress = Progress(BarColumn(bar_width=None), expand=True, auto_refresh=False)
+    progress = Progress(expand=True)
     task = progress.add_task("writer", total=None, visible=False)
 
     panel = Panel(title="Writing", renderable=progress)
