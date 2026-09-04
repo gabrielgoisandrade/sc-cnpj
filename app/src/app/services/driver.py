@@ -1,6 +1,7 @@
 from pathlib import Path
 from time import sleep
 
+from rich.text import Text
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
@@ -55,13 +56,16 @@ class Driver:
 
             checkbox.click()
 
-            for index, criteria in enumerate(criterias):
+            for criteria in criterias:
                 sleep(1.5)
 
                 thread_state.progress.advance(thread_state.worker_task)
 
                 thread_state.log.info(f"Searching {criteria.value}")
-                thread_state.log.info(f"Searching {index + 1}/{len(criterias)}")
+
+                thread_state.visual_log.append(
+                    Text.from_markup(f':mag: [bold][blue] Buscando "{criteria.value}"')
+                )
 
                 input.clear()
                 input.send_keys(criteria.value)
@@ -78,6 +82,12 @@ class Driver:
                 if len(error_tooltip):
                     thread_state.log.error(f"{criteria.value} is invalid")
 
+                    thread_state.visual_log.append(
+                        Text.from_markup(
+                            f':x: [bold][red] CNPJ "{criteria.value}" inválido'
+                        )
+                    )
+
                     results.append([Record(criteria.row, "CNPJ inválido")])
                     input.clear()
 
@@ -93,6 +103,12 @@ class Driver:
                 ):
                     thread_state.log.info(f"No results found for {criteria.value}")
 
+                    thread_state.visual_log.append(
+                        Text.from_markup(
+                            f':warning: [bold][yellow] Nenhum resultado encontrado para o CNPJ "{criteria.value}"',
+                        )
+                    )
+
                     results.append([Record(criteria.row, " ")])
                     self.__driver.back()
 
@@ -105,6 +121,12 @@ class Driver:
                 results.append([Record(criteria.row, spans[0].text)])
 
                 self.__driver.back()
+
+            thread_state.visual_log.append(
+                Text.from_markup(
+                    ":white_heavy_check_mark: [bold][green] Processo finalizado"
+                )
+            )
 
             return results
         except WebDriverException as e:

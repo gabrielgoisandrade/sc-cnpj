@@ -7,7 +7,6 @@ from app.state import thread_state
 
 def selenium_worker(cnpjs: list[Record]):
     thread_state.log.info(f"Starting search {len(cnpjs)} CNPJs")
-
     driver = Driver()
 
     try:
