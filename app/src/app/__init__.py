@@ -6,4 +6,5 @@ def main() -> None:
     try:
         create_workers()
     except Exception as e:  # noqa: BLE001
+        print(e)
         log.exception(msg=e)

@@ -3,7 +3,7 @@ from time import sleep
 
 from rich.align import Align
 from rich.text import Text
-from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.common.exceptions import WebDriverException
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -16,12 +16,13 @@ from app.state import thread_state
 
 # TODO: remover TODO o rich daqui e separar num arquivo próprio de ui.
 class Driver:
-    __driver: WebDriver
-    __path: str
-
     __INDEX_URL = "https://appasp.sefaz.go.gov.br/Sintegra/Consulta/default.html"
 
     __RESULT_PAGE_URL = "https://appasp.sefaz.go.gov.br/Sintegra/Consulta/consultar.asp"
+
+    __driver: WebDriver
+
+    __path: str
 
     def __init__(self, path="src/driver/chromedriver.exe") -> None:
         self.__path = str(Path(path).resolve())
@@ -41,13 +42,14 @@ class Driver:
             thread_state.log.info("Driver found")
 
             return driver
-        except (FileNotFoundError, TimeoutException) as e:
+        except FileNotFoundError as e:
             thread_state.log.exception(msg=e)
             raise e from e
 
     def find_value(self, criterias: list[Record]):
         try:
             results: list[list[Record]] = []
+
             thread_state.progress.reset(thread_state.worker_task, total=len(criterias))
 
             self.__driver.get(self.__INDEX_URL)
